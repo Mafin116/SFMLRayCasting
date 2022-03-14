@@ -5,34 +5,47 @@
 
 #define PI 3.14159
 
-const int WIDTH = 600;
+const int WIDTH = 1000;
 const int HEIGHT = 600;
 
-std::vector <std::vector <int> > map
-{
-	{1,1,1,1,1,1,1,1},
-	{1,0,1,0,0,1,0,1},
-	{1,0,1,0,0,1,0,1},
-	{1,0,0,0,0,0,0,1},
-	{1,0,0,0,0,0,0,1},
-	{1,0,0,0,0,0,0,1},
-	{1,0,0,0,0,0,0,1},
-	{1,1,1,1,1,1,1,1}
-};
-
-
+bool map2d_visible = false;
+bool lines2d_visible = false;
+bool player2d_visible = false;
+bool level_visible = true;
 
 sf::Vector2f player_pos(WIDTH / 2, HEIGHT / 2);
 float player_angle = 0;
 
-void drawLines(sf::RenderWindow& window, sf::Vector2f player_pos, float player_angle) {
-	int num_rays = 100;
-	float FOV = 60.f;
-	float max_depth = 600.f;
-	float delta_angle = 2 * PI * ((FOV / num_rays) / 360);
-	float rad = 2 * PI * ((player_angle) / 360);
 
-	float cur_angle = rad - 2 * PI * ((90 -(FOV / 2)) / 360);
+
+std::vector <std::vector <int> > map
+{
+	{1,1,1,1,1,1,1,1,1},
+	{1,0,1,0,0,1,0,0,1},
+	{1,0,1,0,0,0,0,0,1},
+	{1,0,0,0,0,1,0,0,1},
+	{1,1,0,0,0,0,0,0,1},
+	{1,0,1,1,0,0,0,0,1},
+	{1,0,0,0,0,0,0,0,1},
+	{1,0,0,0,0,0,0,0,1},
+	{1,1,1,1,1,1,1,1,1}
+};
+
+
+float deg_to_rad(float deg) {
+	return 2 * PI * deg / 360;
+}
+
+
+
+void drawLines(sf::RenderWindow& window, sf::Vector2f player_pos, float player_angle) {
+	int num_rays = 200;
+	float FOV = 180.f;
+	float max_depth = WIDTH;
+	float delta_angle = 2 * PI * ((FOV / num_rays) / 360);
+	float rad = deg_to_rad(player_angle);
+
+	float cur_angle = rad - deg_to_rad(90 -(FOV / 2));
 
 	for (int i = 0; i < num_rays; i++)
 	{	
@@ -49,12 +62,32 @@ void drawLines(sf::RenderWindow& window, sf::Vector2f player_pos, float player_a
 				sf::Vertex(sf::Vector2f(ray_x, ray_y))
 			};
 
-			window.draw(line, 2, sf::Lines);
+			if(lines2d_visible)
+				window.draw(line, 2, sf::Lines);
 
-			int block_x = (int)(ray_x / 600 * 8);
-			int block_y = (int)(ray_y / 600 * 8);
+			int block_x = (int)(ray_x / WIDTH * map.size());
+			int block_y = (int)(ray_y / HEIGHT * map[0].size());
 			if (map[block_y][block_x] == 1)
 			{
+
+
+
+
+				float dist = num_rays / 2 * -tan(FOV / 2);
+				float proj_coeff = dist * 100;
+				float scale = WIDTH / num_rays;
+				float proj_height = proj_coeff / depth;
+
+				sf::RectangleShape line(sf::Vector2f(proj_height, scale));
+				int color = 225 - (225 / max_depth * depth);
+				line.setFillColor(sf::Color(color/5, color, color/2,-1));
+				line.setPosition(WIDTH - scale*i, 300 - proj_height/2);
+				line.rotate(90);
+				
+				if(level_visible)
+					window.draw(line);
+
+
 				break;
 			}
 		}
@@ -64,58 +97,6 @@ void drawLines(sf::RenderWindow& window, sf::Vector2f player_pos, float player_a
 	
 }
 
-//void drawLines(sf::RenderWindow& window, sf::Vector2f player_pos, float player_angle) {
-//
-//	int r, mx, my, mp, dof;
-//	float ray_x, ray_y, ray_angle, xo, yo;
-//	ray_angle = 2 * 3.14f * (player_angle / 360)+90;
-//
-//	for (r = 0; r < 1; r++)
-//	{
-//		dof = 0;
-//		float aTan = -1 / tan(ray_angle);
-//
-//		if (ray_angle > PI) { 
-//			ray_y = (((int)player_pos.y >> 6) << 6) - 0.0001;
-//			ray_x = (player_pos.y - ray_y) * aTan + player_pos.x;
-//			yo = -64;
-//			xo = -yo * aTan;
-//		}
-//		if (ray_angle < PI) {
-//			ray_y = (((int)player_pos.y >> 6) << 6) + 64;
-//			ray_x = (player_pos.y - ray_y) * aTan + player_pos.x;
-//			yo = 64;
-//			xo = -yo * aTan;
-//		}
-//		if (ray_angle == 0 || ray_angle == PI) {
-//			ray_x = player_pos.x;
-//			ray_y = player_pos.y;
-//			dof = 8;
-//		}
-//		while (dof < 8)
-//		{
-//			mx = (int)(ray_x) >> 6;
-//			my = (int)(ray_y) >> 6;
-//			mp = my * mapX + mx;
-//			if (mp < mapX * mapY && map[mp] == 1) { dof = 8; }
-//			else { ray_x += xo; ray_y += yo; dof += 1; }
-//		}
-//		sf::Vertex line[] =
-//		{
-//			sf::Vertex(player_pos),
-//			sf::Vertex(sf::Vector2f(ray_x, ray_y))
-//		};
-//
-//		window.draw(line, 2, sf::Lines);
-//	}
-//
-//
-//	/*sf::RectangleShape line(sf::Vector2f(600.f, 1.f));
-//	line.setPosition(player_pos);
-//	line.rotate(ray_angle);
-//	window.draw(line);*/
-//
-//}
 
 
 void drawPlayer(sf::RenderWindow &window)
@@ -128,7 +109,8 @@ void drawPlayer(sf::RenderWindow &window)
 
 	drawLines(window, player_pos, player.getRotation());
 
-	window.draw(player);
+	if(player2d_visible)
+		window.draw(player);
 
 }
 
@@ -156,48 +138,52 @@ void buttons()
 		player_pos.y += player_speed * std::cos(rad);
 	}
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) { player_angle += 5.55; }
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) { player_angle -= 5.55; }
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) { player_angle += 3; }
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) { player_angle -= 3; }
 
 }
 
-	void drawMap2D(sf::RenderWindow& window)
+void drawMap2D(sf::RenderWindow& window)
+{
+	for (int y = 0; y < map.size(); y++)
 	{
-		std::vector <std::vector <int> > map
+		for (int x = 0; x < map[y].size(); x++)
 		{
-			{1,1,1,1,1,1,1,1},
-			{1,0,1,0,0,1,0,1},
-			{1,0,1,0,0,1,0,1},
-			{1,0,0,0,0,0,0,1},
-			{1,0,0,0,0,0,0,1},
-			{1,0,0,0,0,0,0,1},
-			{1,0,0,0,0,0,0,1},
-			{1,1,1,1,1,1,1,1}
-		};
+			if (map[y][x] == 1) {
+				sf::RectangleShape map_block(sf::Vector2f( WIDTH / map[y].size(), HEIGHT / map.size()));
+				map_block.setFillColor(sf::Color::Blue);
+				map_block.setPosition(WIDTH / map[y].size() * x+1, HEIGHT / map.size() * y+1);
 
-		for (int y = 0; y < map.size(); y++)
-		{
-			for (int x = 0; x < map[y].size(); x++)
-			{
-				if (map[y][x] == 1) {
-					sf::RectangleShape map_block(sf::Vector2f(600.f / 8.f, 600.f / 8.f));
-					map_block.setFillColor(sf::Color::Blue);
-					map_block.setPosition(WIDTH / map.size() * x, HEIGHT / map[y].size() * y);
+				if(map2d_visible)
 					window.draw(map_block);
-				}
 			}
 		}
 	}
+}
 
-
-
-
-
+void drawSky(sf::RenderWindow& window)
+{
+	sf::RectangleShape map_block(sf::Vector2f(WIDTH, HEIGHT/2));
+	map_block.setFillColor(sf::Color::Blue);
+	map_block.setPosition(0,0);
+	window.draw(map_block);
+}
 
 int main()
 {
 	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "RT");
-	window.setFramerateLimit(60);
+	
+	//window.setFramerateLimit(60);
+
+
+	float fps;
+	sf::Clock clock = sf::Clock::Clock();
+	sf::Time previousTime = clock.getElapsedTime();
+	sf::Time currentTime;
+
+	
+
+
 
 	while (window.isOpen())
 	{
@@ -206,13 +192,21 @@ int main()
 		{			if (event.type == sf::Event::Closed)
 			window.close();
 		}
-		window.clear(sf::Color::Black);
+		window.clear(sf::Color(50,50,50,-1));
 
-
+		//drawSky(window);
 		drawMap2D(window);
 
 		drawPlayer(window);
 		buttons();
+
+
+
+		currentTime = clock.getElapsedTime();
+		fps = 1.0f / (currentTime.asSeconds() - previousTime.asSeconds()); // the asSeconds returns a float
+		std::cout << "fps =" << floor(fps) << std::endl; // flooring it will make the frame rate a rounded number
+		previousTime = currentTime;
+
 
 		window.display();
 	}
